@@ -31,6 +31,7 @@ class AuthSecurityTest {
 
     @Mock UserRepository users;
     @Mock RefreshTokenRepository refreshTokens;
+    @Mock com.fitcoach.coach.CoachProfileRepository coachProfiles;
 
     AuthService auth;
     JwtTokenProvider jwt;
@@ -39,7 +40,7 @@ class AuthSecurityTest {
     void setUp() {
         // Fixed test secret (>= 32 bytes), short TTLs irrelevant for these tests.
         jwt = new JwtTokenProvider("unit-test-secret-unit-test-secret-unit", 15, 30);
-        auth = new AuthService(users, refreshTokens, new BCryptPasswordEncoder(), jwt);
+        auth = new AuthService(users, refreshTokens, coachProfiles, new BCryptPasswordEncoder(), jwt);
     }
 
     private User user(String email, String rawPassword) {

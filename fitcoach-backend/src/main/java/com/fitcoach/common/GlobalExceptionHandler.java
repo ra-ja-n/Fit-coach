@@ -15,11 +15,12 @@ public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(ApiException.class)
-    public ResponseEntity<ApiResponse<Void>> handleApi(ApiException e) {
+    public ResponseEntity<ApiResponse<?>> handleApi(ApiException e) {
         if (e.getStatus().is5xxServerError()) {
             log.error("api exception", e);
         }
-        return ResponseEntity.status(e.getStatus()).body(ApiResponse.error(e.getCode(), e.getMessage()));
+        return ResponseEntity.status(e.getStatus())
+                .body(new ApiResponse<>(false, e.getCode(), e.getMessage(), e.getData()));
     }
 
     /** Invalid input -> specific inline field errors, mirrored by Zod on mobile. */
@@ -37,7 +38,7 @@ public class GlobalExceptionHandler {
 
     /** Server errors: generic message to the user, details to logs only. */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Void>> handleGeneric(Exception e) {
+    public ResponseEntity<ApiResponse<?>> handleGeneric(Exception e) {
         log.error("unhandled exception", e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.error("INTERNAL", "Something went wrong. Please try again."));

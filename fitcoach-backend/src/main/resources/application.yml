@@ -25,7 +25,16 @@ fitcoach:
   cors:
     allowed-origins: ${CORS_ORIGINS:http://localhost:3000}
   stripe:
-    webhook-secret: ${STRIPE_WEBHOOK_SECRET}
+    webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+  payments:
+    # Dev/demo only: lets POST /api/checkout/{id}/pay stand in for the payment
+    # provider's callback. It still goes through HMAC signature verification and
+    # the idempotent webhook path. MUST stay false in any real deployment —
+    # activation is supposed to come only from the provider.
+    simulate-provider: ${SIMULATE_PROVIDER:false}
+  dev-seed:
+    # Set in the 'dev' profile to seed demo data on boot. Blank = seed nothing.
+    password: ${DEV_SEED_PASSWORD:}
 
 logging:
   level:
