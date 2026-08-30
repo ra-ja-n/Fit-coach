@@ -75,6 +75,24 @@ There is deliberately **no offline or mock fallback**: if the backend is down th
 app shows a real network error. That is the point — a silent mock would hide
 broken wiring.
 
+### App icons
+
+`app.json` declares no `icon`, `favicon` or `android.adaptiveIcon` — the repo
+ships without an `assets/` directory, so Expo falls back to its defaults. That is
+fine for `expo start` and for web, but **add real icons before a native build**
+(`eas build` / `expo prebuild` will otherwise use Expo's placeholder art):
+
+```jsonc
+"icon": "./assets/icon.png",                 // 1024x1024
+"web": { "favicon": "./assets/favicon.png" },
+"android": {
+  "adaptiveIcon": {
+    "backgroundColor": "#0E7C5A",            // theme/tokens.ts -> C.primary
+    "foregroundImage": "./assets/android-icon-foreground.png"
+  }
+}
+```
+
 ---
 
 ## How the two sides fit together

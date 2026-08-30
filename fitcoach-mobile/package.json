@@ -32,6 +32,7 @@
     "react-native-screens": "^4.27.0",
     "react-native-svg": "15.15.4",
     "react-native-web": "^0.21.2",
+    "react-native-worklets": "^0.12.1",
     "zod": "^3.25.76",
     "zustand": "^5.0.15"
   },
@@ -46,5 +47,5 @@
     "web": "expo start --web"
   },
   "private": true,
-  "description": "FitCoach \u2014 client and coach app (Expo / React Native)"
+  "description": "FitCoach — client and coach app (Expo / React Native)"
 }
