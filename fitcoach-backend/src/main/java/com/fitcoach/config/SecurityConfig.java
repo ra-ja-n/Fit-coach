@@ -5,7 +5,9 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -20,6 +22,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity   // enables the @PreAuthorize role gates on the controllers
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
@@ -46,6 +49,14 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/webhooks/**").permitAll()  // signature-verified inside
+                // STOMP endpoint. The socket itself is anonymous until the
+                // CONNECT frame proves a user; publishing is re-checked per
+                // message, so an open handshake exposes no data.
+                .requestMatchers("/ws/**").permitAll()
+                // Public discovery only. Deliberately narrow: /api/coaches and
+                // /api/coaches/{id} — one path segment. Anything self-scoped
+                // lives under /api/coach/** (singular) and stays authenticated.
+                .requestMatchers(HttpMethod.GET, "/api/coaches", "/api/coaches/*").permitAll()
                 .anyRequest().authenticated())
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();

@@ -24,7 +24,7 @@ public class AuthController {
     public record AuthResponse(String accessToken, String refreshToken, UserDto user) {}
 
     private AuthResponse toResponse(AuthService.TokenPair pair) {
-        return new AuthResponse(pair.accessToken(), pair.refreshToken(), UserDto.from(pair.user(), null));
+        return new AuthResponse(pair.accessToken(), pair.refreshToken(), UserDto.from(pair.user(), pair.coachStatus()));
     }
 
     @PostMapping("/register")

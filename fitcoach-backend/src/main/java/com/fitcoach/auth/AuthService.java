@@ -1,5 +1,8 @@
 package com.fitcoach.auth;
 
+import com.fitcoach.coach.CoachProfile;
+import com.fitcoach.coach.CoachProfileRepository;
+import com.fitcoach.coach.CoachStatus;
 import com.fitcoach.common.ApiException;
 import com.fitcoach.security.JwtTokenProvider;
 import com.fitcoach.user.User;
@@ -23,18 +26,21 @@ public class AuthService {
 
     private final UserRepository users;
     private final RefreshTokenRepository refreshTokens;
+    private final CoachProfileRepository coachProfiles;
     private final PasswordEncoder encoder;
     private final JwtTokenProvider jwt;
 
     public AuthService(UserRepository users, RefreshTokenRepository refreshTokens,
+                       CoachProfileRepository coachProfiles,
                        PasswordEncoder encoder, JwtTokenProvider jwt) {
         this.users = users;
         this.refreshTokens = refreshTokens;
+        this.coachProfiles = coachProfiles;
         this.encoder = encoder;
         this.jwt = jwt;
     }
 
-    public record TokenPair(String accessToken, String refreshToken, User user) {}
+    public record TokenPair(String accessToken, String refreshToken, User user, String coachStatus) {}
 
     @Transactional
     public User register(UserRole role, String name, String email, String password) {
@@ -50,7 +56,17 @@ public class AuthService {
         u.setName(name.trim());
         u.setEmail(normalized);
         u.setPasswordHash(encoder.encode(password)); // BCrypt, never logged
-        return users.save(u);
+        User saved = users.save(u);
+        if (role == UserRole.coach) {
+            // Every coach gets a profile row immediately, so it is editable from
+            // day one and shows as 'pending' until an admin approves it.
+            CoachProfile profile = new CoachProfile();
+            profile.setUserId(saved.getId());
+            profile.setBio("");
+            profile.setStatus(CoachStatus.pending);
+            coachProfiles.save(profile);
+        }
+        return saved;
     }
 
     @Transactional
@@ -111,6 +127,13 @@ public class AuthService {
         return issueFor(user);
     }
 
+    /** Coaches carry their approval status; everyone else gets null. */
+    private String coachStatusOf(User user) {
+        if (user.getRole() != UserRole.coach) return null;
+        return coachProfiles.findById(user.getId())
+                .map(CoachProfile::getStatus).map(Enum::name).orElse(CoachStatus.pending.name());
+    }
+
     @Transactional
     public void logout(String refreshToken) {
         try {
@@ -135,6 +158,6 @@ public class AuthService {
         row.setExpiresAt(refresh.expiresAt());
         row.setRevoked(false);
         refreshTokens.save(row);
-        return new TokenPair(access, refresh.token(), user);
+        return new TokenPair(access, refresh.token(), user, coachStatusOf(user));
     }
 }

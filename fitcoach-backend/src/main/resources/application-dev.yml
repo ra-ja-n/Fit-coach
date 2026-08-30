@@ -1,0 +1,19 @@
+# Local development profile.
+#
+#   SPRING_PROFILES_ACTIVE=dev mvn spring-boot:run
+#
+# Still PostgreSQL — the schema uses JSONB, text[] and gen_random_uuid(), so
+# there is no in-memory substitute that would exercise the real code paths.
+# What 'dev' changes: provider simulation is on, CORS allows the Expo dev
+# servers, and demo data is seeded when DEV_SEED_PASSWORD is set.
+
+fitcoach:
+  payments:
+    simulate-provider: true
+  cors:
+    # Expo dev server (web) + Metro. Override with CORS_ORIGINS if needed.
+    allowed-origins: ${CORS_ORIGINS:http://localhost:8081,http://localhost:19006,http://localhost:8082}
+
+logging:
+  level:
+    com.fitcoach: DEBUG
