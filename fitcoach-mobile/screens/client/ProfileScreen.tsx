@@ -10,7 +10,7 @@ import type { SubscriptionRow } from '../../lib/api/types';
 import { useAuthStore } from '../../state/authStore';
 import { useUIStore } from '../../state/uiStore';
 import { Avatar, Badge, Button, Card, SectionHeader, TopBar } from '../../components/ui';
-import { C, R, S, TYPE } from '../../theme/tokens';
+import { C, S, TYPE } from '../../theme/tokens';
 import { fmtDate, money } from '../../lib/format';
 import type { ClientStackParamList } from '../../navigation/types';
 

@@ -1,6 +1,6 @@
 // Chat tab for clients: resolves their single coach-client pair.
 import React from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
@@ -71,7 +71,7 @@ export default function ChatTabScreen() {
       </Pressable>
       {pair.status !== 'active' && (
         <View style={{ marginHorizontal: S.xl, marginTop: S.sm, backgroundColor: C.accentSoft, borderRadius: 12, padding: S.md }}>
-          <Text style={{ fontSize: 12.5, fontWeight: '600', color: '#9A6712' }}>
+          <Text style={{ fontSize: 12.5, fontWeight: '600', color: C.accentInk }}>
             This conversation is archived — messaging ended with your subscription.
           </Text>
         </View>
@@ -81,5 +81,5 @@ export default function ChatTabScreen() {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.surface, marginHorizontal: S.xl, borderRadius: 18, borderWidth: 1, borderColor: '#EDF0EA', padding: S.lg },
+  row: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.surface, marginHorizontal: S.xl, borderRadius: 18, borderWidth: 1, borderColor: C.lineSoft, padding: S.lg },
 });

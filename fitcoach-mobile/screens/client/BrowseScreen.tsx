@@ -1,13 +1,12 @@
 // Public discovery: clients browse approved coach profiles freely.
 import React from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
-import { Ionicons } from '@expo/vector-icons';
 import { request } from '../../lib/api/api';
 import type { CoachProfile } from '../../lib/api/types';
-import { Avatar, Badge, Card, Chip, EmptyState, ErrorState, LoadingView, TopBar } from '../../components/ui';
+import { Avatar, Card, Chip, EmptyState, ErrorState, LoadingView, TopBar } from '../../components/ui';
 import { C, S, TYPE } from '../../theme/tokens';
 import { money } from '../../lib/format';
 import type { ClientStackParamList } from '../../navigation/types';

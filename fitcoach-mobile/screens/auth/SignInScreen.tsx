@@ -39,7 +39,7 @@ export default function SignInScreen({ navigation }: NativeStackScreenProps<Auth
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: C.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <View style={styles.logo}>
-          <Ionicons name="barbell" size={26} color="#fff" />
+          <Ionicons name="barbell" size={26} color={C.white} />
         </View>
         <Text style={[TYPE.h1, { marginTop: S.lg }]}>Welcome back</Text>
         <Text style={[TYPE.sub, { marginTop: S.xs }]}>Sign in to your coaching space.</Text>

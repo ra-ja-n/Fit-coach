@@ -1,9 +1,8 @@
 // Admin console (mobile support view): approve coaches, suspend/ban,
 // force-logout, payments overview. Admins never edit plans or see card data.
 import React from 'react';
-import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { FlatList, RefreshControl, Text, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Ionicons } from '@expo/vector-icons';
 import { request, handleWriteError } from '../../lib/api/api';
 import type { AdminOverview } from '../../lib/api/types';
 import { useAuthStore } from '../../state/authStore';
@@ -11,6 +10,12 @@ import { useUIStore } from '../../state/uiStore';
 import { Avatar, Badge, Button, Card, ErrorState, LoadingView, SectionHeader, TopBar } from '../../components/ui';
 import { C, S, TYPE } from '../../theme/tokens';
 import { money, timeAgo } from '../../lib/format';
+
+/** The three write actions the admin console can perform, each with its own payload shape. */
+type AdminAction =
+  | { op: 'admin.decide'; payload: { userId: string; approve: boolean } }
+  | { op: 'admin.setSuspended'; payload: { userId: string; suspended: boolean } }
+  | { op: 'admin.forceLogout'; payload: { userId: string } };
 
 export default function AdminHomeScreen() {
   const signOut = useAuthStore((s) => s.signOut);
@@ -23,7 +28,7 @@ export default function AdminHomeScreen() {
   });
 
   const act = useMutation({
-    mutationFn: (args: { op: 'admin.decide' | 'admin.setSuspended' | 'admin.forceLogout'; payload: any }) => request(args.op, args.payload),
+    mutationFn: (action: AdminAction) => request(action.op, action.payload),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin'] }); showToast('Done', 'success'); },
     onError: (e) => handleWriteError(e),
   });
@@ -122,7 +127,7 @@ export default function AdminHomeScreen() {
 
 function StatMini({ label, value }: { label: string; value: string }) {
   return (
-    <View style={{ flex: 1, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: '#EDF0EA', padding: S.md, alignItems: 'center' }}>
+    <View style={{ flex: 1, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.lineSoft, padding: S.md, alignItems: 'center' }}>
       <Text style={{ fontSize: 15, fontWeight: '800', color: C.ink }} numberOfLines={1}>{value}</Text>
       <Text style={[TYPE.caption, { marginTop: 2 }]}>{label.toUpperCase()}</Text>
     </View>

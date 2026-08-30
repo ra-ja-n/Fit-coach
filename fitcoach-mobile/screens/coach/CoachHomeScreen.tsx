@@ -6,13 +6,13 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
 import { request } from '../../lib/api/api';
 import type { CoachClientRow } from '../../lib/api/types';
 import { useAuthStore } from '../../state/authStore';
-import { Avatar, Badge, Card, EmptyState, ErrorState, LoadingView, SectionHeader } from '../../components/ui';
-import { C, S, TYPE } from '../../theme/tokens';
-import { firstName, timeAgo } from '../../lib/format';
+import { Card, EmptyState, ErrorState, LoadingView, SectionHeader } from '../../components/ui';
+import { ClientCard } from '../../components/coach';
+import { C, R, S, TYPE } from '../../theme/tokens';
+import { firstName } from '../../lib/format';
 import type { CoachStackParamList } from '../../navigation/types';
 
 type Nav = NativeStackNavigationProp<CoachStackParamList>;
@@ -98,43 +98,8 @@ export default function CoachHomeScreen() {
   );
 }
 
-function ClientCard({ row, onPress, muted }: { row: CoachClientRow; onPress: () => void; muted?: boolean }) {
-  const lastActivity = [row.lastMessageAt, row.lastProgressAt].filter(Boolean).sort().pop() ?? null;
-  return (
-    <Card style={{ marginBottom: S.md, opacity: muted ? 0.75 : 1 }} onPress={onPress}>
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <Avatar name={row.clientName} size={48} />
-        <View style={{ flex: 1, marginLeft: S.md }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={[TYPE.h3, { flex: 1 }]} numberOfLines={1}>{row.clientName}</Text>
-            {row.unread > 0 && (
-              <View style={styles.unread}><Text style={styles.unreadText}>{row.unread}</Text></View>
-            )}
-          </View>
-          <Text style={TYPE.sub} numberOfLines={1}>{row.packageTitle}</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={18} color={C.faint} style={{ marginLeft: S.sm }} />
-      </View>
-      <View style={styles.metaRow}>
-        {row.status === 'active' ? (
-          <Badge label={`${row.daysLeft} DAYS LEFT`} tone={row.daysLeft <= 5 ? 'amber' : 'green'} />
-        ) : (
-          <Badge label={row.status.toUpperCase()} tone={row.status === 'cancelled' ? 'red' : 'amber'} />
-        )}
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Ionicons name={row.hasWorkout ? 'barbell' : 'barbell-outline'} size={14} color={row.hasWorkout ? C.primary : C.faint} style={{ marginRight: 6 }} />
-          <Ionicons name={row.hasDiet ? 'nutrition' : 'nutrition-outline'} size={14} color={row.hasDiet ? C.primary : C.faint} />
-        </View>
-      </View>
-      {lastActivity && <Text style={[TYPE.caption, { marginTop: S.sm }]}>LAST ACTIVITY {timeAgo(lastActivity).toUpperCase()}</Text>}
-    </Card>
-  );
-}
 
 const styles = StyleSheet.create({
-  countPill: { backgroundColor: C.primarySoft, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
+  countPill: { backgroundColor: C.primarySoft, borderRadius: R.full, paddingHorizontal: 12, paddingVertical: 7 },
   countText: { color: C.primaryDark, fontSize: 11.5, fontWeight: '800' },
-  unread: { backgroundColor: C.danger, borderRadius: 9, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5, marginRight: 6 },
-  unreadText: { color: '#fff', fontSize: 10.5, fontWeight: '800' },
-  metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: S.md, paddingTop: S.md, borderTopWidth: 1, borderTopColor: C.lineSoft },
 });

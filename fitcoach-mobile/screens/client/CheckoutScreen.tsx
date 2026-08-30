@@ -2,16 +2,16 @@
 // signed webhook (idempotent); the client polls payment status and never
 // grants itself access.
 import React, { useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Ionicons } from '@expo/vector-icons';
 import { request, handleWriteError } from '../../lib/api/api';
-import { ApiError, errorMessage } from '../../lib/api/errors';
+import { ApiError } from '../../lib/api/errors';
 import type { CheckoutStatus, Package } from '../../lib/api/types';
 import { useUIStore } from '../../state/uiStore';
-import { Button, Card, ErrorState, LoadingView, TopBar } from '../../components/ui';
-import { C, R, S, TYPE } from '../../theme/tokens';
+import { AlertBox, Button, ErrorState, LoadingView, TopBar } from '../../components/ui';
+import { CheckoutSuccess, PackageReviewCard, SandboxModePicker, type SandboxMode } from '../../components/subscription';
+import { C, S, TYPE } from '../../theme/tokens';
 import { money } from '../../lib/format';
 import type { ClientStackParamList } from '../../navigation/types';
 
@@ -22,7 +22,7 @@ export default function CheckoutScreen({ route, navigation }: NativeStackScreenP
   const qc = useQueryClient();
   const showToast = useUIStore((s) => s.showToast);
   const [stage, setStage] = useState<Stage>('review');
-  const [mode, setMode] = useState<'success' | 'decline'>('success');
+  const [mode, setMode] = useState<SandboxMode>('success');
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -85,16 +85,7 @@ export default function CheckoutScreen({ route, navigation }: NativeStackScreenP
   const { pkg, coachName } = pkgQ.data;
 
   if (stage === 'success') {
-    return (
-      <View style={styles.center}>
-        <View style={styles.successIcon}><Ionicons name="checkmark" size={34} color="#fff" /></View>
-        <Text style={[TYPE.h1, { textAlign: 'center', marginTop: S.xl }]}>You're in! 🎉</Text>
-        <Text style={[TYPE.sub, { textAlign: 'center', marginTop: S.sm, lineHeight: 21, maxWidth: 300 }]}>
-          Payment confirmed and your subscription with {coachName} is active. Your plans and private chat are ready.
-        </Text>
-        <Button label="Go to my dashboard" style={{ marginTop: S.xxl, alignSelf: 'center' }} onPress={() => navigation.popToTop()} />
-      </View>
-    );
+    return <CheckoutSuccess coachName={coachName} onDone={() => navigation.popToTop()} />;
   }
 
   return (
@@ -102,49 +93,16 @@ export default function CheckoutScreen({ route, navigation }: NativeStackScreenP
       <ScrollView contentContainerStyle={{ padding: S.xl, paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
         <TopBar title="Checkout" subtitle="Secure sandbox payment" />
 
-        <Card>
-          <Text style={TYPE.caption}>PACKAGE</Text>
-          <Text style={[TYPE.h2, { marginTop: 4 }]}>{pkg.title}</Text>
-          <Text style={[TYPE.sub, { marginTop: 2 }]}>by {coachName} · {pkg.durationDays} days</Text>
-          <View style={styles.priceRow}>
-            <Text style={styles.price}>{money(pkg.priceCents)}</Text>
-            <Text style={TYPE.caption}>ONE-TIME · FULL ACCESS</Text>
-          </View>
-          <View style={{ marginTop: S.md }}>
-            {pkg.features.map((f) => (
-              <View key={f} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 3 }}>
-                <Ionicons name="checkmark-circle" size={16} color={C.primary} style={{ marginRight: 8 }} />
-                <Text style={{ fontSize: 13.5, color: C.sub, fontWeight: '500' }}>{f}</Text>
-              </View>
-            ))}
-          </View>
-        </Card>
+        <PackageReviewCard pkg={pkg} coachName={coachName} />
 
         {stage === 'declined' && (
-          <View style={styles.declinedBox}>
-            <Ionicons name="card-outline" size={18} color={C.danger} style={{ marginRight: 10 }} />
-            <Text style={{ fontSize: 13.5, fontWeight: '600', color: C.danger, flex: 1, lineHeight: 19 }}>
-              Payment declined — you were not charged and no access was granted. Check your details and retry.
-            </Text>
-          </View>
+          <AlertBox
+            icon="card-outline"
+            text="Payment declined — you were not charged and no access was granted. Check your details and retry."
+          />
         )}
 
-        {/* Sandbox test-mode selector */}
-        <View style={styles.testBox}>
-          <Text style={styles.testTitle}>SANDBOX · SIMULATE CARD RESULT</Text>
-          <View style={{ flexDirection: 'row' }}>
-            {(['success', 'decline'] as const).map((m) => (
-              <Button
-                key={m}
-                label={m === 'success' ? 'Card approved' : 'Card declined'}
-                compact
-                variant={mode === m ? 'primary' : 'outline'}
-                style={{ flex: 1, marginRight: m === 'success' ? S.sm : 0 }}
-                onPress={() => setMode(m)}
-              />
-            ))}
-          </View>
-        </View>
+        <SandboxModePicker mode={mode} onChange={setMode} />
 
         <Button
           label={stage === 'processing' ? 'Confirming with provider…' : `Pay ${money(pkg.priceCents)}`}
@@ -161,12 +119,3 @@ export default function CheckoutScreen({ route, navigation }: NativeStackScreenP
   );
 }
 
-const styles = StyleSheet.create({
-  center: { flex: 1, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center', padding: S.xxl },
-  successIcon: { width: 76, height: 76, borderRadius: 38, backgroundColor: C.primary, alignItems: 'center', justifyContent: 'center' },
-  priceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: S.lg, paddingTop: S.lg, borderTopWidth: 1, borderTopColor: C.lineSoft },
-  price: { fontSize: 26, fontWeight: '800', color: C.ink },
-  declinedBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.dangerSoft, borderRadius: R.md, padding: S.lg, marginTop: S.lg },
-  testBox: { backgroundColor: C.surfaceAlt, borderRadius: R.lg, padding: S.lg, marginTop: S.lg },
-  testTitle: { fontSize: 10.5, fontWeight: '800', color: C.sub, letterSpacing: 0.6, marginBottom: S.md },
-});

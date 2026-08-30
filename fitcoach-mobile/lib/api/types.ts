@@ -37,6 +37,22 @@ export interface Package {
   features: string[];
 }
 
+/** POST /api/coach/packages — id present means "update this one". */
+export type SavePackagePayload = {
+  id?: string;
+  title: string;
+  priceCents: number;
+  durationDays: number;
+  features: string[];
+};
+
+/** PUT /api/coach/profile */
+export type UpdateCoachProfilePayload = {
+  bio: string;
+  specialties: string[];
+  experienceYears: number;
+};
+
 export type SubStatus = 'active' | 'expired' | 'cancelled';
 
 export interface SubscriptionRow {
@@ -128,6 +144,16 @@ export interface ProgressEntry {
   notes: string;
   createdAt: string;
 }
+
+/** POST /api/progress — a partial upsert of today's entry. */
+// A type alias (not an interface) so it satisfies the `Payload` index
+// signature that request() accepts.
+export type LogProgressPayload = {
+  weightKg?: number | null;
+  measurements?: Record<string, number>;
+  notes?: string;
+  photoUrl?: string;
+};
 
 export interface ChatMessage {
   id: string;

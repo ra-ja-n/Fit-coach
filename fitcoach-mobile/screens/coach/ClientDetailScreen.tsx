@@ -1,21 +1,19 @@
 // Coach view of one client: progress overview, plans management (create, edit,
 // or assign a pre-made library template), chat. Read-only automatically when
-// the subscription lapses.
+// the subscription lapses — every write affordance is gated on `isActive`.
 import React, { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Image } from 'expo-image';
-import { useNavigation } from '@react-navigation/native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Ionicons } from '@expo/vector-icons';
 import { request, handleWriteError } from '../../lib/api/api';
 import type { ClientDetailBundle, PlanTemplate, PlansBundle, ProgressEntry } from '../../lib/api/types';
 import { useAuthStore } from '../../state/authStore';
 import { useUIStore } from '../../state/uiStore';
-import { Avatar, Badge, Button, Card, ErrorState, LoadingView, ModalSheet, SectionHeader, StatTile, TopBar } from '../../components/ui';
-import { WeightChart } from '../../components/WeightChart';
-import { C, R, S, TYPE } from '../../theme/tokens';
-import { fmtDate, fmtDay, timeAgo } from '../../lib/format';
+import { Button, ErrorState, LoadingView, ModalSheet, SectionHeader, TopBar } from '../../components/ui';
+import { LatestCheckInCard, ProgressPhotoStrip, ProgressSummaryRow } from '../../components/progress';
+import { PlanTemplatePicker } from '../../components/plan';
+import { AdherenceChips, ClientHeaderCard, PlanAdminRow } from '../../components/coach';
+import { C, S, TYPE } from '../../theme/tokens';
 import type { CoachStackParamList } from '../../navigation/types';
 
 export default function ClientDetailScreen({ route, navigation }: NativeStackScreenProps<CoachStackParamList, 'ClientDetail'>) {
@@ -39,7 +37,6 @@ export default function ClientDetailScreen({ route, navigation }: NativeStackScr
     queryFn: () => request<PlansBundle>('plans.get', { coachId: me.id, clientId }),
     enabled: !!detailQ.data,
   });
-
   const templatesQ = useQuery({
     queryKey: ['templates'],
     queryFn: () => request<PlanTemplate[]>('templates.list'),
@@ -54,26 +51,25 @@ export default function ClientDetailScreen({ route, navigation }: NativeStackScr
       setLibraryKind(null);
       showToast('Template assigned — your client sees it instantly', 'success');
     },
-    onError: (e) => handleWriteError(e),
+    onError: handleWriteError,
   });
 
-  if (detailQ.isLoading) return <View style={{ flex: 1, backgroundColor: C.bg }}><LoadingView /></View>;
+  if (detailQ.isLoading) return <View style={styles.root}><LoadingView /></View>;
   if (detailQ.isError || !detailQ.data) {
-    return <View style={{ flex: 1, backgroundColor: C.bg }}><ErrorState message="This client is not in your roster." onRetry={() => detailQ.refetch()} /></View>;
+    return <View style={styles.root}><ErrorState message="This client is not in your roster." onRetry={() => detailQ.refetch()} /></View>;
   }
 
   const d = detailQ.data;
   const isActive = d.status === 'active';
   const entries = progressQ.data ?? [];
-  const chrono = [...entries].reverse().filter((e) => e.weightKg != null);
-  const current = entries.find((e) => e.weightKg != null)?.weightKg ?? null;
-  const first = chrono.length ? chrono[0].weightKg : null;
-  const delta = current != null && first != null ? +(current - first).toFixed(1) : null;
   const photos = entries.filter((e) => e.photoUrls.length > 0);
+  const candidates = (templatesQ.data ?? []).filter((t) => t.kind === libraryKind);
+  const openBuilder = (kind: 'workout' | 'diet') =>
+    navigation.navigate('PlanBuilder', { clientId, kind, clientName: d.clientName });
 
   return (
-    <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <ScrollView contentContainerStyle={{ padding: S.xl, paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
+    <View style={styles.root}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <TopBar
           title={d.clientName}
           subtitle={d.clientEmail}
@@ -88,95 +84,41 @@ export default function ClientDetailScreen({ route, navigation }: NativeStackScr
           }
         />
 
-        <Card>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Avatar name={d.clientName} size={46} />
-            <View style={{ flex: 1, marginLeft: S.md }}>
-              <Text style={TYPE.h3}>{d.packageTitle}</Text>
-              <Text style={TYPE.sub}>{fmtDate(d.startDate)} → {fmtDate(d.endDate)}</Text>
-            </View>
-            <Badge label={d.status.toUpperCase()} tone={isActive ? 'green' : d.status === 'cancelled' ? 'red' : 'amber'} />
-          </View>
-          {!isActive && (
-            <View style={styles.readOnlyBar}>
-              <Ionicons name="lock-closed-outline" size={13} color={'#9A6712'} style={{ marginRight: 7 }} />
-              <Text style={{ fontSize: 12, fontWeight: '700', color: '#9A6712', flex: 1 }}>
-                Subscription ended — history is read-only. Messaging and plan updates are disabled.
-              </Text>
-            </View>
-          )}
-        </Card>
+        <ClientHeaderCard
+          clientName={d.clientName}
+          packageTitle={d.packageTitle}
+          startDate={d.startDate}
+          endDate={d.endDate}
+          status={d.status}
+        />
 
-        {/* Progress summary */}
         <SectionHeader title="Progress" />
-        <View style={{ flexDirection: 'row' }}>
-          <StatTile label="Start" value={first != null ? `${first} kg` : '—'} />
-          <View style={{ width: S.md }} />
-          <StatTile label="Current" value={current != null ? `${current} kg` : '—'} />
-          <View style={{ width: S.md }} />
-          <StatTile label="Change" value={delta != null ? `${delta > 0 ? '+' : ''}${delta} kg` : '—'} tone={delta != null ? (delta <= 0 ? 'green' : 'red') : undefined} />
-        </View>
+        <ProgressSummaryRow entries={entries} />
+        <LatestCheckInCard entry={entries[0]} />
 
-        {chrono.length >= 2 && (
-          <Card style={{ marginTop: S.md }}>
-            <Text style={[TYPE.caption, { marginBottom: S.sm }]}>WEIGHT TREND</Text>
-            <WeightChart data={chrono.map((e) => ({ date: e.date, value: e.weightKg! }))} />
-          </Card>
-        )}
-
-        {entries.length > 0 && (
-          <Card style={{ marginTop: S.md }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: S.sm }}>
-              <Text style={[TYPE.h3, { flex: 1 }]}>Latest check-in</Text>
-              <Text style={TYPE.caption}>{timeAgo(entries[0].createdAt).toUpperCase()}</Text>
-            </View>
-            <Text style={TYPE.sub}>
-              {[entries[0].weightKg ? `${entries[0].weightKg} kg` : null, entries[0].measurements.waist ? `waist ${entries[0].measurements.waist}cm` : null].filter(Boolean).join(' · ') || 'Logged'}
-            </Text>
-            {entries[0].notes ? <Text style={[TYPE.sub, { marginTop: 6, fontStyle: 'italic' }]}>“{entries[0].notes}”</Text> : null}
-          </Card>
-        )}
-
-        {/* Weekly photos */}
         {photos.length > 0 && (
-          <>
-            <SectionHeader title="Weekly photos" />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -S.xl }} contentContainerStyle={{ paddingHorizontal: S.xl }}>
-              {photos.map((e) => (
-                <Pressable key={e.id} onPress={() => navigation.navigate('PhotoView', { uri: e.photoUrls[e.photoUrls.length - 1], label: `${d.clientName} · ${fmtDay(e.date)}` })} style={{ marginRight: S.md }}>
-                  <Image source={{ uri: e.photoUrls[e.photoUrls.length - 1] }} style={styles.photo} />
-                  <Text style={[TYPE.caption, { marginTop: 6, textAlign: 'center' }]}>{fmtDay(e.date)}</Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-          </>
+          <ProgressPhotoStrip
+            entries={entries}
+            onOpenPhoto={(uri, label) =>
+              navigation.navigate('PhotoView', { uri, label: `${d.clientName} · ${label}` })
+            }
+          />
         )}
 
-        {/* Plans */}
         <SectionHeader title="Plans" />
-        {(d.workoutTotal > 0 || d.dietTotal > 0) && (
-          <View style={styles.adherenceRow}>
-            {d.workoutTotal > 0 && (
-              <View style={styles.adherenceChip}>
-                <Ionicons name="barbell-outline" size={13} color={C.primary} style={{ marginRight: 6 }} />
-                <Text style={styles.adherenceText}>Workout {d.workoutChecked}/{d.workoutTotal} checked</Text>
-              </View>
-            )}
-            {d.dietTotal > 0 && (
-              <View style={styles.adherenceChip}>
-                <Ionicons name="nutrition-outline" size={13} color={C.blue} style={{ marginRight: 6 }} />
-                <Text style={styles.adherenceText}>Diet {d.dietChecked}/{d.dietTotal} checked</Text>
-              </View>
-            )}
-          </View>
-        )}
+        <AdherenceChips
+          workoutChecked={d.workoutChecked}
+          workoutTotal={d.workoutTotal}
+          dietChecked={d.dietChecked}
+          dietTotal={d.dietTotal}
+        />
         <PlanAdminRow
           icon="barbell-outline"
           title={plansQ.data?.workout?.title}
           emptyLabel="No workout plan yet"
           updated={plansQ.data?.workout?.updatedAt}
           canEdit={isActive}
-          onEdit={() => navigation.navigate('PlanBuilder', { clientId, kind: 'workout', clientName: d.clientName })}
+          onEdit={() => openBuilder('workout')}
           onLibrary={() => setLibraryKind('workout')}
         />
         <PlanAdminRow
@@ -185,74 +127,29 @@ export default function ClientDetailScreen({ route, navigation }: NativeStackScr
           emptyLabel="No nutrition plan yet"
           updated={plansQ.data?.diet?.updatedAt}
           canEdit={isActive}
-          onEdit={() => navigation.navigate('PlanBuilder', { clientId, kind: 'diet', clientName: d.clientName })}
+          onEdit={() => openBuilder('diet')}
           onLibrary={() => setLibraryKind('diet')}
         />
       </ScrollView>
 
-      {/* Assign from library */}
       <ModalSheet
         visible={libraryKind !== null}
         onClose={() => setLibraryKind(null)}
         title={libraryKind === 'workout' ? 'Assign workout template' : 'Assign nutrition template'}
       >
-        {(templatesQ.data ?? []).filter((t) => t.kind === libraryKind).length === 0 && (
-          <Text style={[TYPE.sub, { marginBottom: S.md }]}>
-            No {libraryKind} templates yet. Create them in Business → Plan library.
-          </Text>
+        {candidates.length === 0 && (
+          <Text style={styles.noTemplates}>No {libraryKind} templates yet. Create them in Business → Plan library.</Text>
         )}
-        {(templatesQ.data ?? []).filter((t) => t.kind === libraryKind).map((t) => (
-          <Card key={t.id} style={{ marginBottom: S.md }} onPress={() => assignMutation.mutate(t.id)}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <View style={{ flex: 1 }}>
-                <Text style={TYPE.h3}>{t.title}</Text>
-                {t.note ? <Text style={[TYPE.sub, { marginTop: 2 }]} numberOfLines={2}>{t.note}</Text> : null}
-              </View>
-              {assignMutation.isPending ? (
-                <Ionicons name="hourglass-outline" size={18} color={C.primary} />
-              ) : (
-                <Ionicons name="chevron-forward" size={18} color={C.faint} />
-              )}
-            </View>
-          </Card>
+        {candidates.map((t) => (
+          <PlanTemplatePicker key={t.id} template={t} busy={assignMutation.isPending} onAssign={() => assignMutation.mutate(t.id)} />
         ))}
       </ModalSheet>
     </View>
   );
 }
 
-function PlanAdminRow({ icon, title, emptyLabel, updated, canEdit, onEdit, onLibrary }: {
-  icon: any; title?: string; emptyLabel: string; updated?: string; canEdit: boolean; onEdit: () => void; onLibrary: () => void;
-}) {
-  return (
-    <Card style={{ marginBottom: S.md }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <View style={styles.planIcon}><Ionicons name={icon} size={18} color={C.primary} /></View>
-        <View style={{ flex: 1, marginLeft: S.md }}>
-          <Text style={[TYPE.h3, !title && { color: C.sub }]}>{title ?? emptyLabel}</Text>
-          {updated ? <Text style={TYPE.sub}>Updated {timeAgo(updated)}</Text> : <Text style={TYPE.sub}>Create one or assign from your library</Text>}
-        </View>
-        {canEdit ? (
-          <>
-            <Pressable hitSlop={8} onPress={onLibrary} style={styles.libraryBtn}>
-              <Ionicons name="library-outline" size={17} color={C.primaryDark} />
-            </Pressable>
-            <Button label={title ? 'Edit' : 'Create'} compact variant={title ? 'outline' : 'primary'} onPress={onEdit} />
-          </>
-        ) : (
-          <Ionicons name="lock-closed-outline" size={16} color={C.faint} />
-        )}
-      </View>
-    </Card>
-  );
-}
-
 const styles = StyleSheet.create({
-  readOnlyBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.accentSoft, borderRadius: R.sm, paddingHorizontal: S.md, paddingVertical: 9, marginTop: S.md },
-  photo: { width: 100, height: 125, borderRadius: R.md, backgroundColor: C.surfaceAlt },
-  planIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: C.primarySoft, alignItems: 'center', justifyContent: 'center' },
-  libraryBtn: { width: 36, height: 36, borderRadius: 11, backgroundColor: C.primarySoft, alignItems: 'center', justifyContent: 'center', marginRight: S.sm },
-  adherenceRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: S.md },
-  adherenceChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.surface, borderRadius: R.full, borderWidth: 1, borderColor: C.line, paddingHorizontal: 12, paddingVertical: 7, marginRight: S.sm, marginBottom: S.sm },
-  adherenceText: { fontSize: 12, fontWeight: '700', color: C.sub },
+  root: { flex: 1, backgroundColor: C.bg },
+  content: { padding: S.xl, paddingBottom: 48 },
+  noTemplates: { ...TYPE.sub, marginBottom: S.md },
 });

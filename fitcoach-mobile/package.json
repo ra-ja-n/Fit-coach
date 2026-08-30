@@ -1,5 +1,5 @@
 {
-  "name": "expo-router-ts",
+  "name": "fitcoach-mobile",
   "version": "1.0.0",
   "main": "index.ts",
   "dependencies": {
@@ -45,5 +45,6 @@
     "ios": "expo start --ios",
     "web": "expo start --web"
   },
-  "private": true
+  "private": true,
+  "description": "FitCoach \u2014 client and coach app (Expo / React Native)"
 }

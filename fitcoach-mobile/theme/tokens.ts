@@ -3,6 +3,8 @@
 
 export const C = {
   bg: '#F6F7F4',
+  /** Full-screen photo viewer backdrop — a shade darker than bg. */
+  photoBackdrop: '#F1F3EF',
   surface: '#FFFFFF',
   surfaceAlt: '#EEF1EC',
   ink: '#182420',
@@ -17,9 +19,17 @@ export const C = {
 
   accent: '#D9962B',
   accentSoft: '#FBF0DB',
+  /** Border for cards that sit on accentSoft. */
+  accentLine: '#F0DFBC',
+  /** Dark text/icon colour that stays legible on accentSoft. */
+  accentInk: '#9A6712',
+  /** Body copy on accentSoft — softer than accentInk, for longer paragraphs. */
+  accentDeep: '#6B4A0E',
 
   danger: '#D6455D',
   dangerSoft: '#FBE7EA',
+  /** Error icon/tint that reads on top of the primary (dark) bubble. */
+  dangerOnPrimary: '#FFD7DD',
 
   blue: '#3E7CB1',
   blueSoft: '#E7F0F8',

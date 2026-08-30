@@ -1,3 +1,5 @@
+import type { NavigatorScreenParams } from '@react-navigation/native';
+
 export type AuthStackParamList = {
   SignIn: undefined;
   SignUp: undefined;
@@ -14,7 +16,8 @@ export type ChatParams = { coachId: string; clientId: string; name: string };
 export type PhotoViewParams = { uri: string; label: string };
 
 export type ClientStackParamList = {
-  Tabs: undefined;
+  /** Nested tab navigator — screens deep-link into it with `{ screen: … }`. */
+  Tabs: NavigatorScreenParams<ClientTabsParamList>;
   Plan: { kind: 'workout' | 'diet'; coachId: string };
   CoachDetail: { coachId: string };
   Checkout: { packageId: string; coachId: string };
@@ -30,7 +33,8 @@ export type CoachTabsParamList = {
 };
 
 export type CoachStackParamList = {
-  Tabs: undefined;
+  /** Nested tab navigator — screens deep-link into it with `{ screen: … }`. */
+  Tabs: NavigatorScreenParams<CoachTabsParamList>;
   ClientDetail: { clientId: string };
   PlanBuilder: {
     clientId?: string;

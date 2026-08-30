@@ -1,14 +1,13 @@
 // Coach profile + packages + subscribe/renew entry point.
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { request } from '../../lib/api/api';
 import type { CoachProfile, Package, SubscriptionRow } from '../../lib/api/types';
 import { useAuthStore } from '../../state/authStore';
-import { Avatar, Badge, Button, Card, Chip, ErrorState, LoadingView, SectionHeader, TopBar } from '../../components/ui';
+import { Avatar, Button, Card, Chip, ErrorState, LoadingView, SectionHeader, TopBar } from '../../components/ui';
 import { C, R, S, TYPE } from '../../theme/tokens';
 import { money } from '../../lib/format';
 import type { ClientStackParamList } from '../../navigation/types';
