@@ -169,3 +169,25 @@ fitcoach-backend/src/main/java/com/fitcoach/
 
 Money is stored as **integer cents**, never floats. Plan content is stored as
 PostgreSQL `jsonb`; the API flattens it into typed DTOs.
+
+---
+
+## Continuous integration
+
+There is **no CI on this repository yet**. A ready-to-enable workflow lives at
+[`docs/github-actions-ci.yml`](docs/github-actions-ci.yml) — it runs
+`mvn -B test` for the backend and `tsc --noEmit` + `expo export` for the app.
+
+It is parked outside `.github/workflows/` because the branch it was written on
+runs under a GitHub App token without the `workflows` scope, and GitHub rejects
+workflow changes from such a token. To turn it on:
+
+```bash
+mkdir -p .github/workflows
+git mv docs/github-actions-ci.yml .github/workflows/ci.yml
+git commit -m "Enable CI"
+git push
+```
+
+Until that happens, `mvn test` is the check that has never been run against the
+backend — please run it locally before merging.

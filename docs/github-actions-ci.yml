@@ -1,0 +1,84 @@
+# GitHub Actions workflow for FitCoach.
+#
+# THIS FILE IS PARKED HERE ON PURPOSE. The agent that wrote this branch runs
+# under a GitHub App token without the `workflows` scope, so GitHub rejects any
+# push that creates or updates something under `.github/workflows/`. Enable it
+# with one command from a checkout that has normal push rights:
+#
+#   mkdir -p .github/workflows
+#   git mv docs/github-actions-ci.yml .github/workflows/ci.yml
+#   git commit -m "Enable CI" && git push
+#
+# Validated with a YAML parser (structure and job steps check out) and
+# `npm ci --dry-run` exits 0, so the lockfile is in sync. It has NOT been
+# executed — that requires the workflow to actually be in .github/workflows/.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs on the same ref — a force-push shouldn't leave two
+# jobs competing for the same conclusion.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend — mvn test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fitcoach-backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      # Every test is a Mockito unit test (@ExtendWith(MockitoExtension.class)) —
+      # no Spring context, no database, so no service container is needed.
+      # `mvn -B test` still compiles main + test sources, which is the point:
+      # it is the only thing that proves the backend actually builds.
+      - name: Compile and run tests
+        run: mvn -B --no-transfer-progress test
+
+  mobile:
+    name: Mobile — typecheck and bundle
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fitcoach-mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: fitcoach-mobile/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      # tsc misses what Metro catches: barrel cycles, unresolved modules, and
+      # bad app.json. A successful export means the app really bundles.
+      - name: Bundle (web export)
+        run: npx expo export --platform web --output-dir dist-ci
+
+      - name: Upload bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-bundle
+          path: fitcoach-mobile/dist-ci
+          retention-days: 7
