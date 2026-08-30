@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: fitcoach-backend
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/fitcoach}
+    username: ${DATABASE_USER:fitcoach}
+    password: ${DATABASE_PASSWORD:fitcoach}
+  jpa:
+    hibernate:
+      ddl-auto: validate            # schema is owned by Flyway, never Hibernate
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  port: ${PORT:8080}
+
+fitcoach:
+  jwt:
+    # 256-bit+ secret, injected from the environment — never committed.
+    secret: ${JWT_SECRET}
+    access-ttl-minutes: 15
+    refresh-ttl-days: 30
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost:3000}
+  stripe:
+    webhook-secret: ${STRIPE_WEBHOOK_SECRET}
+
+logging:
+  level:
+    com.fitcoach.security: INFO     # security events (blocked access, lockouts) are logged here
